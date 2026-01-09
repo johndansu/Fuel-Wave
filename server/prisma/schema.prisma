@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(uuid()) @db.Uuid
+  email        String       @unique @db.VarChar(255)
+  passwordHash String       @map("password_hash") @db.VarChar(255)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  workEntries  WorkEntry[]
+
+  @@map("users")
+}
+
+model WorkEntry {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  title       String   @db.VarChar(255)
+  description String   @db.Text
+  category    Category
+  timeSpent   Int?     @map("time_spent")
+  outcome     Outcome
+  blockers    String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memory Memory?
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@index([category])
+  @@map("work_entries")
+}
+
+model Memory {
+  id             String   @id @default(uuid()) @db.Uuid
+  workEntryId    String   @unique @map("work_entry_id") @db.Uuid
+  searchableText String   @map("searchable_text") @db.Text
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  workEntry WorkEntry @relation(fields: [workEntryId], references: [id], onDelete: Cascade)
+
+  @@map("memories")
+}
+
+enum Category {
+  project
+  study
+  personal
+  client
+}
+
+enum Outcome {
+  done
+  partial
+  stuck
+}
